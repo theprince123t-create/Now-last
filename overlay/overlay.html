@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cric Overlay</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    .overlay {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: rgba(0, 0, 80, 0.8);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 15px;
+      font-size: 18px;
+    }
+    .team {
+      font-weight: bold;
+    }
+    .batsmen, .bowler {
+      margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="batsmen">
+      <span id="striker"></span> |
+      <span id="nonStriker"></span>
+    </div>
+    <div class="score">
+      <span id="batting"></span>: <span id="score"></span> (<span id="overs"></span>)  
+      RR: <span id="rr"></span> | CRR: <span id="crr"></span>
+    </div>
+    <div class="bowler">
+      Bowler: <span id="bowler"></span>
+    </div>
+  </div>
+
+  <script>
+    async function fetchScore() {
+      try {
+        const res = await fetch("/score");
+        const data = await res.json();
+
+        document.getElementById("batting").textContent = data.batting;
+        document.getElementById("score").textContent = data.score;
+        document.getElementById("overs").textContent = data.overs;
+        document.getElementById("rr").textContent = data.rr;
+        document.getElementById("crr").textContent = data.crr;
+
+        document.getElementById("striker").textContent =
+          `${data.striker} ${data.strikerRuns}(${data.strikerBalls})`;
+
+        document.getElementById("nonStriker").textContent =
+          `${data.nonStriker} ${data.nonStrikerRuns}(${data.nonStrikerBalls})`;
+
+        document.getElementById("bowler").textContent =
+          `${data.bowler} ${data.bowlerWkts}/${data.bowlerRuns} (${data.bowlerOvers})`;
+      } catch (err) {
+        console.error("Error fetching score", err);
+      }
+    }
+    fetchScore();
+    setInterval(fetchScore, 5000); // har 5 sec update
+  </script>
+</body>
+</html>
