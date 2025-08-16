@@ -1,76 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <title>Cric Overlay</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      font-family: Arial, sans-serif;
-      color: white;
+    html,body{margin:0;padding:0;background:transparent;}
+    .bar{
+      position:fixed;left:0;right:0;bottom:0;
+      display:flex;justify-content:space-between;align-items:center;
+      padding:12px 18px; box-sizing:border-box;
+      background:#28306a; color:#fff; font-family:Arial,Helvetica,sans-serif;
+      font-size:20px; letter-spacing:.3px;
     }
-    .overlay {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: rgba(0, 0, 80, 0.8);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 15px;
-      font-size: 18px;
-    }
-    .team {
-      font-weight: bold;
-    }
-    .batsmen, .bowler {
-      margin: 0 10px;
-    }
+    .pill{background:#4050a5; padding:6px 10px; border-radius:12px; margin-left:10px; font-size:16px}
+    .side{min-width:32%; display:flex; gap:14px; align-items:center}
+    .center{text-align:center; flex:1}
+    .small{font-size:16px; opacity:.9}
+    @media (max-width:800px){ .bar{font-size:16px} .pill{font-size:14px} .small{font-size:14px} }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <div class="batsmen">
-      <span id="striker"></span> |
-      <span id="nonStriker"></span>
-    </div>
-    <div class="score">
-      <span id="batting"></span>: <span id="score"></span> (<span id="overs"></span>)  
-      RR: <span id="rr"></span> | CRR: <span id="crr"></span>
-    </div>
-    <div class="bowler">
-      Bowler: <span id="bowler"></span>
-    </div>
+  <div class="bar">
+    <div class="side" id="left">–</div>
+    <div class="center" id="mid">–</div>
+    <div class="side" id="right" style="justify-content:flex-end">–</div>
   </div>
 
   <script>
-    async function fetchScore() {
+    function getQuery(k){return new URL(location.href).searchParams.get(k)}
+
+    async function load() {
       try {
-        const res = await fetch("/score");
-        const data = await res.json();
+        const apiURL = "/score" + (getQuery("url") ? ("?url=" + encodeURIComponent(getQuery("url"))) : "");
+        const res = await fetch(apiURL, { cache: "no-store" });
+        const d = await res.json();
 
-        document.getElementById("batting").textContent = data.batting;
-        document.getElementById("score").textContent = data.score;
-        document.getElementById("overs").textContent = data.overs;
-        document.getElementById("rr").textContent = data.rr;
-        document.getElementById("crr").textContent = data.crr;
+        const left = document.getElementById("left");
+        left.innerHTML =
+          `<div>${d.striker || "-"} <span class="small">${d.strikerRuns ?? "-"}(${d.strikerBalls ?? "-"})</span></div>
+           <div>${d.nonStriker || "-"} <span class="small">${d.nonStrikerRuns ?? "-"}(${d.nonStrikerBalls ?? "-"})</span></div>`;
 
-        document.getElementById("striker").textContent =
-          `${data.striker} ${data.strikerRuns}(${data.strikerBalls})`;
+        const mid = document.getElementById("mid");
+        mid.innerHTML =
+          `<strong>${d.team || ""}</strong>
+           <span class="pill">${d.score || ""} ${d.overs ? "(" + d.overs + ")" : ""}</span>
+           <span class="small">RR: ${d.rr || "-"}</span>
+           <span class="small">CRR: ${d.crr || "-"}</span>`;
 
-        document.getElementById("nonStriker").textContent =
-          `${data.nonStriker} ${data.nonStrikerRuns}(${data.nonStrikerBalls})`;
-
-        document.getElementById("bowler").textContent =
-          `${data.bowler} ${data.bowlerWkts}/${data.bowlerRuns} (${data.bowlerOvers})`;
-      } catch (err) {
-        console.error("Error fetching score", err);
+        const right = document.getElementById("right");
+        right.innerHTML =
+          `Bowler: <strong>${d.bowler || "-"}</strong>
+           <span class="small">${(d.bowlerWkts ?? "-")}/${(d.bowlerRuns ?? "-")} ${d.bowlerOvers ? "(" + d.bowlerOvers + ")" : ""}</span>`;
+      } catch(e){
+        console.error(e);
       }
     }
-    fetchScore();
-    setInterval(fetchScore, 5000); // har 5 sec update
+
+    load();
+    // 5 sec me auto-refresh
+    setInterval(load, 5000);
   </script>
 </body>
 </html>
