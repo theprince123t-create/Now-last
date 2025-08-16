@@ -1,69 +1,44 @@
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
+const express = require("express");
+const fetch = require("node-fetch");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.static(".")); // overlay.html ko serve karega
-
-// Render me ENV me set karoge: MATCH_JSON_URL
-const DEFAULT_URL = process.env.MATCH_JSON_URL || "";
-
-function pick(v, ...keys) {
-  for (const k of keys) {
-    if (v && v[k] != null) return v[k];
-  }
-  return undefined;
-}
 
 app.get("/score", async (req, res) => {
   try {
-    const url = req.query.url || DEFAULT_URL;
-    if (!url) return res.status(400).json({ error: "Missing url" });
+    const response = await fetch("https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/18754689/individual/jaajssi-vs-jeejej/live.json");
+    const json = await response.json();
 
-    const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
-    const j = await r.json();
+    const match = json?.pageProps?.data?.scorecard;
+    const team = match?.teams?.[0]; // Pehli team
+    const batsmen = team?.batting?.batsmen || [];
+    const bowler = team?.bowling?.bowlers?.[0] || {};
 
-    const data = j?.pageProps?.miniScorecard?.data || {};
-    const innings = (data.innings && data.innings[0]) || {};
-
-    const summary = innings.summary || {};
-    const batsmen = innings.batsmen || innings.batsman || [];
-    const bowler = (innings.bowlers && innings.bowlers[0]) || {};
-
-    const striker = batsmen.find(p => p?.striker) || batsmen[0] || {};
-    const nonStriker = batsmen.find(p => !p?.striker && p !== striker) || batsmen[1] || {};
-
-    const resp = {
-      team: pick(data.team_a, "name", "short_name"),
-      score: pick(summary, "score") || "",
-      overs: (pick(summary, "over") || "").replace(/[()]/g, ""), // e.g. "1.3 Ov" -> "1.3 Ov"
-      rr: pick(summary, "rr") || "",
-      crr: pick(summary, "crr") || "",
-
-      striker: pick(striker, "player_name", "name"),
-      strikerRuns: pick(striker, "runs", "r"),
-      strikerBalls: pick(striker, "balls", "b"),
-
-      nonStriker: pick(nonStriker, "player_name", "name"),
-      nonStrikerRuns: pick(nonStriker, "runs", "r"),
-      nonStrikerBalls: pick(nonStriker, "balls", "b"),
-
-      bowler: pick(bowler, "player_name", "name"),
-      bowlerWkts: pick(bowler, "wickets", "w"),
-      bowlerRuns: pick(bowler, "runs", "r"),
-      bowlerOvers: pick(bowler, "overs", "o")
+    const data = {
+      team: team?.name || "-",
+      score: team?.score || "-",
+      overs: team?.overs || "-",
+      rr: match?.rr || "-",
+      crr: match?.crr || "-",
+      striker: batsmen[0]?.name || "-",
+      strikerRuns: batsmen[0]?.runs || 0,
+      strikerBalls: batsmen[0]?.balls || 0,
+      nonStriker: batsmen[1]?.name || "-",
+      nonStrikerRuns: batsmen[1]?.runs || 0,
+      nonStrikerBalls: batsmen[1]?.balls || 0,
+      bowler: bowler?.name || "-",
+      bowlerWkts: bowler?.wkts || 0,
+      bowlerRuns: bowler?.runs || 0,
+      bowlerOvers: bowler?.overs || "0.0",
     };
 
-    return res.json(resp);
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: "Failed to fetch CricHeroes data" });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch data" });
   }
 });
 
-// root par overlay khole
-app.get("/", (_req, res) => res.redirect("/overlay.html"));
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server live on ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
