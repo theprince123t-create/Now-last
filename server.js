@@ -1,6 +1,6 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const cors = require("cors");
+import express from "express";
+import fetch from "node-fetch";
+import cors from "cors";
 
 const app = express();
 app.use(cors());
@@ -11,7 +11,7 @@ app.get("/score", async (req, res) => {
     const json = await response.json();
 
     const match = json?.pageProps?.data?.scorecard;
-    const team = match?.teams?.[0]; // Pehli team
+    const team = match?.teams?.[0];
     const batsmen = team?.batting?.batsmen || [];
     const bowler = team?.bowling?.bowlers?.[0] || {};
 
@@ -41,4 +41,4 @@ app.get("/score", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on ${PORT}`));
