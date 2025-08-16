@@ -2,45 +2,35 @@ import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.get("/score", async (req, res) => {
+// Dynamic route: /score/:matchId
+app.get("/score/:matchId", async (req, res) => {
+  const { matchId } = req.params;
   try {
-    const url = "https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/18754689/individual/jaajssi-vs-jeejej/live.json";
+    const url = `https://cricheroes.com/_next/data/GWn-9wsDkpg5k-2hvyhaR/scorecard/${matchId}/individual/live.json`;
     const response = await fetch(url);
     const data = await response.json();
 
-    const innings = data?.pageProps?.data?.scorecard?.teamInnings?.[0];
+    // yaha se jo fields chahiye wo nikalo
+    const scoreData = {
+      team: data?.pageProps?.data?.scorecard?.[0]?.team?.name || "-",
+      score: data?.pageProps?.data?.scorecard?.[0]?.score || "-",
+      overs: data?.pageProps?.data?.scorecard?.[0]?.overs || "-",
+      crr: data?.pageProps?.data?.scorecard?.[0]?.crr || "-",
+    };
 
-    if (!innings) {
-      return res.json({ error: "No live data found" });
-    }
-
-    const striker = innings.batsmen?.find(b => b.isStriker);
-    const nonStriker = innings.batsmen?.find(b => !b.isStriker);
-    const bowler = innings.bowler;
-
-    res.json({
-      team: innings.team?.name || "-",
-      score: innings.score || "-",
-      overs: innings.overs || "-",
-      rr: innings.rr || "-",
-      crr: innings.crr || "-",
-      striker: striker?.name || "-",
-      strikerRuns: striker?.runs || 0,
-      strikerBalls: striker?.balls || 0,
-      nonStriker: nonStriker?.name || "-",
-      nonStrikerRuns: nonStriker?.runs || 0,
-      nonStrikerBalls: nonStriker?.balls || 0,
-      bowler: bowler?.name || "-",
-      bowlerWkts: bowler?.wkts || 0,
-      bowlerRuns: bowler?.runs || 0,
-      bowlerOvers: bowler?.overs || "0.0",
-    });
+    res.json(scoreData);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch data" });
+    res.status(500).json({ error: "Failed to fetch score" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Default route
+app.get("/", (req, res) => {
+  res.send("Server is running! Use /score/:matchId to get data.");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
